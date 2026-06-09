@@ -35,6 +35,8 @@ jobs:
 
       - name: 构建安装包
         run: npm run make
+        env:
+          LMS_NO_SIGN: true
 
       - name: 打包
         run: npm run postinstall  

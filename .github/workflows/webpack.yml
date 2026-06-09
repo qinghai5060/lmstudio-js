@@ -44,7 +44,7 @@ jobs:
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: lms.exe
+          name: lms
           path: dist/*.*
 
   # 合并所有平台产物并发布到 GitHub Releases

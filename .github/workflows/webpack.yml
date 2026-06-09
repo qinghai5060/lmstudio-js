@@ -12,7 +12,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        os: [windows-latest, macos-latest]
         node-version: [20]
 
     steps:
@@ -35,11 +35,6 @@ jobs:
 
       - name: 构建安装包
         run: npm run package
-        env:
-          # 苹果签名（可选，不填也能打包）
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4

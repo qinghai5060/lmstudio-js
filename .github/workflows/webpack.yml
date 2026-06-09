@@ -1,28 +1,66 @@
-name: NodeJS with Webpack
+name: 自动构建并发布安装包
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - 'v*'           # 推送 v1.0.0 这类标签时自动触发
+  workflow_dispatch:  # 允许手动触发构建
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    name: 在多平台构建
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node-version: [24.x]
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        node-version: [20]
 
     steps:
-    - uses: actions/checkout@v4
+      - name: 检出代码
+        uses: actions/checkout@v4
 
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
+      - name: 安装 Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
 
-    - name: Build
-      run: |
-        npm install
-        npx webpack
+      - name: 安装项目依赖
+        run: npm install
+
+      - name: 编译项目
+        run: npm run build
+
+      - name: 构建安装包
+        run: npm run package
+        env:
+          # 苹果签名（可选，不填也能打包）
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 安装包-${{ matrix.os }}
+          path: dist/*.*
+
+  # 合并所有平台产物并发布到 GitHub Releases
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: 下载所有构建产物
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: 移动所有安装包到根目录
+        run: find ./artifacts -type f -exec mv {} ./ \;
+
+      - name: 创建 GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./*.exe ./*.dmg ./*.deb ./*.rpm ./*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
